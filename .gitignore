@@ -3,3 +3,7 @@
 *.jpg
 *.JPG
 *.WebM
+// no logs
+*.log
+// no temporaries
+tmp.*
