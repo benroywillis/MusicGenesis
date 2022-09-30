@@ -8,13 +8,11 @@ from get_cover_art import CoverFinder
 import argparse
 from datetime import datetime
 
-# global album finder that will remember successful and failed tracks
-finder = CoverFinder( { "verbose": True } )
-
 def Parse_Args():
 	arg_parser = argparse.ArgumentParser()
 	arg_parser.add_argument("-i", "--input", default="songs.csv", help="Input csv file with a column called \"Links\"")
 	arg_parser.add_argument("--offset", default=0, help="Row number in which to start using links for download.")
+	arg_parser.add_argument("--force-album", action="store_true", help="Force the album art finder to find new album art.")
 	arg_parser.add_argument("--today", action="store_true", help="Only process entries in the input csv that were added today. This argument trumps other date arguments.")
 	arg_parser.add_argument("--start-date", default=None, help="Date at which to start the reading of the input csv. Input must be in mmddyyyy format. The input will be interpreted as the date to start the search and includes the date input. Defaults to the first date in the input csv.")
 	arg_parser.add_argument("--end-date", default=None, help="Date at which to end the reading of the input csv. Input must be in mmddyyyy format. The input will be interpreted as the date to search the search and includes the date input. Defaults to the last date in the csv.")
@@ -86,7 +84,7 @@ def readInput(args):
 												  }
 	return songInfo
 
-def Pull(s):
+def Pull(s, finder):
 	"""
 	@brief 	Pulls down the video encoded within the tuple s
 	@param[in]	s	Key-value pair: "Link": { "Title": ... , "Album": ..., "Artist": ..., "Genre": ... }
@@ -139,16 +137,19 @@ def DownLoadPlayList(songInfo):
 	"""
 	Downloads a series of songs from an input playlist (see readInput()) and returns errors
 	"""
+	# album art finder 
+	finder = CoverFinder( { "verbose": True , "force": args.force_album } )
+
 	# keeps track of outcomes
 	errors = { "Success": [], "Download": [], "Format": [] }
 
 	for s in songInfo.items():
 		if args.today:
 			if s[1]["Date"] == datetime.today().date():
-				e = Pull(s)
+				e = Pull(s, finder)
 				errors[e].append( s )
 		elif (args.start_date <= s[1]["Date"]) and (s[1]["Date"] <= args.end_date):
-			e = Pull(s)
+			e = Pull(s, finder)
 			errors[e].append( s )
 
 	print("Successful downloads:")
