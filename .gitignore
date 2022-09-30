@@ -1,0 +1,5 @@
+// don't keep any of the music files or album art. This repository is strictly for the source code
+*.mp3
+*.jpg
+*.JPG
+*.WebM

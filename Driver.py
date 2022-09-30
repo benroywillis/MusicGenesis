@@ -6,13 +6,28 @@ import youtube_dl
 import eyed3
 from get_cover_art import CoverFinder
 import argparse
+from datetime import datetime
+
+# global album finder that will remember successful and failed tracks
+finder = CoverFinder( { "verbose": True } )
 
 def Parse_Args():
 	arg_parser = argparse.ArgumentParser()
 	arg_parser.add_argument("-i", "--input", default="songs.csv", help="Input csv file with a column called \"Links\"")
 	arg_parser.add_argument("--offset", default=0, help="Row number in which to start using links for download.")
+	arg_parser.add_argument("--today", action="store_true", help="Only process entries in the input csv that were added today. This argument trumps other date arguments.")
+	arg_parser.add_argument("--start-date", default=None, help="Date at which to start the reading of the input csv. Input must be in mmddyyyy format. The input will be interpreted as the date to start the search and includes the date input. Defaults to the first date in the input csv.")
+	arg_parser.add_argument("--end-date", default=None, help="Date at which to end the reading of the input csv. Input must be in mmddyyyy format. The input will be interpreted as the date to search the search and includes the date input. Defaults to the last date in the csv.")
 	args = arg_parser.parse_args()
 	args.offset = int(args.offset)
+	if args.start_date:
+		args.start_date = datetime.strptime(args.start_date, '%m%d%Y').date()
+	else:
+		args.start_date = datetime.min.date()
+	if args.end_date:
+		args.end_date = datetime.strptime(args.end_date, '%m%d%Y').date()
+	else:
+		args.end_date = datetime.max.date()
 	return args
 
 def readInput(args):
@@ -28,9 +43,10 @@ def readInput(args):
 		return {}
 	# turn the csv text into an array
 	targetColumns = {}
+	date_col = 0
 	i_c = 0
 	for header in inputCSV.split("\n")[0].split(","):
-		if (header == "Title") or (header == "Album") or (header == "Artist") or (header == "Genre") or (header == "Link"):
+		if (header == "Title") or (header == "Album") or (header == "Artist") or (header == "Genre") or (header == "Link") or (header == "Date Added"):
 			targetColumns[header] = i_c
 		i_c += 1
 
@@ -62,11 +78,12 @@ def readInput(args):
 	for line in csvArray:
 		if len(line) < 5:
 			continue
-		songInfo[ line[targetColumns["Link"]] ] = { "Title": line[targetColumns["Title"]], \
-													   "Album": line[targetColumns["Album"]], \
-													   "Artist": line[targetColumns["Artist"]], \
-													   "Genre": line[targetColumns["Genre"]]
-													 }
+		songInfo[ line[targetColumns["Link"]] ] = { "Title"  : line[targetColumns["Title"]], \
+													"Album"  : line[targetColumns["Album"]], \
+													"Artist" : line[targetColumns["Artist"]],\
+													"Genre"  : line[targetColumns["Genre"]], \
+												   "Date"   : datetime.strptime(line[targetColumns["Date Added"]], '%m-%d-%Y').date()
+												  }
 	return songInfo
 
 def Pull(s):
@@ -114,14 +131,7 @@ def Pull(s):
 		print("Injected ID3 data for "+filename_audio)
 
 		# album art finder
-		finder = CoverFinder( { "verbose": True } )
 		finder.scan_file(filename_audio)
-		#if len(finder.files_failed):
-		#	print("Exception when attempting to find album art for "+filename_audio)
-		#elif len(finder.files_invalid):
-		#	print("Audio file "+filename_audio+" is not supported by album art finder")
-		#elif len(finder.files_skipped):
-		#	print("No album art was available for "+filename_audio)
 	print()
 	return "Success"
 
@@ -133,8 +143,13 @@ def DownLoadPlayList(songInfo):
 	errors = { "Success": [], "Download": [], "Format": [] }
 
 	for s in songInfo.items():
-		e = Pull(s)
-		errors[e].append( s )
+		if args.today:
+			if s[1]["Date"] == datetime.today().date():
+				e = Pull(s)
+				errors[e].append( s )
+		elif (args.start_date <= s[1]["Date"]) and (s[1]["Date"] <= args.end_date):
+			e = Pull(s)
+			errors[e].append( s )
 
 	print("Successful downloads:")
 	for success in errors["Success"]:
