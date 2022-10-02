@@ -31,10 +31,10 @@ def Parse_Args():
 def readInput(args):
 	"""
 	Input file should contain the following column headers (with exactly this spelling, all others will be ignored):
-	Title,Album,Artist,Genre,Link
+	Title,Album,Artist,Genre,Year,Link,Date Added
 	"""
 	try:
-		with open(args.input) as f:
+		with open(args.input, "r") as f:
 			inputCSV = f.read()
 	except FileNotFoundError:
 		print("Could not read input file "+args.input)
@@ -44,7 +44,7 @@ def readInput(args):
 	date_col = 0
 	i_c = 0
 	for header in inputCSV.split("\n")[0].split(","):
-		if (header == "Title") or (header == "Album") or (header == "Artist") or (header == "Genre") or (header == "Link") or (header == "Date Added"):
+		if (header == "Title") or (header == "Album") or (header == "Artist") or (header == "Genre") or (header == "Year") or (header == "Link") or (header == "Date Added"):
 			targetColumns[header] = i_c
 		i_c += 1
 
@@ -80,7 +80,8 @@ def readInput(args):
 													"Album"  : line[targetColumns["Album"]], \
 													"Artist" : line[targetColumns["Artist"]],\
 													"Genre"  : line[targetColumns["Genre"]], \
-												   "Date"   : datetime.strptime(line[targetColumns["Date Added"]], '%m-%d-%Y').date()
+													"Year"   : line[targetColumns["Year"]], \
+												    "Date"   : datetime.strptime(line[targetColumns["Date Added"]], '%m-%d-%Y').date()
 												  }
 	return songInfo
 
@@ -89,9 +90,10 @@ def Pull(s, finder):
 	@brief 	Pulls down the video encoded within the tuple s
 	@param[in]	s	Key-value pair: "Link": { "Title": ... , "Album": ..., "Artist": ..., "Genre": ... }
 	"""
-	video_info     = youtube_dl.YoutubeDL().extract_info( url=s[0], download=False)
-	filename_video = str(video_info["title"]).replace(" ","").replace("(","_").replace(")","").replace("'","").replace("&","and").replace(":","")+".WebM"
-	filename_audio = str(video_info["title"]).replace(" ","").replace("(","_").replace(")","").replace("'","").replace("&","and").replace(":","")+".mp3"
+	video_info     = youtube_dl.YoutubeDL().extract_info( url=s[0], download=False)	
+	filename_root = str(video_info["title"]).replace(" ","").replace("(","_").replace(")","").replace("'","").replace("&","and").replace(":","").replace("[","_").replace("]","").replace("/","").replace("\"","")
+	filename_video = filename_root+".WebM"
+	filename_audio = filename_root+".mp3"
 	options    = { "format": "bestaudio/best", "keepvideo": False, "outtmpl": filename_video, "postprocessors": [{
 																							"key": "FFmpegExtractAudio",\
 																							 "preferredcodec": "mp3",\
@@ -100,7 +102,7 @@ def Pull(s, finder):
 																							  }] }
 	# check to see if we already have this file, if we do then skip the download
 	try:
-		with open(filename_audio) as f:
+		with open(filename_audio, "r") as f:
 			print("Already found "+filename_audio+". Skipping download...")
 	except FileNotFoundError:
 		try:
