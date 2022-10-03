@@ -91,7 +91,7 @@ def Pull(s, finder):
 	@param[in]	s	Key-value pair: "Link": { "Title": ... , "Album": ..., "Artist": ..., "Genre": ... }
 	"""
 	video_info     = youtube_dl.YoutubeDL().extract_info( url=s[0], download=False)	
-	filename_root = str(video_info["title"]).replace(" ","").replace("(","_").replace(")","").replace("'","").replace("&","and").replace(":","").replace("[","_").replace("]","").replace("/","").replace("\"","")
+	filename_root = str(video_info["title"]).replace(" ","").replace("(","_").replace(")","").replace("'","").replace("&","and").replace(":","").replace("[","_").replace("]","").replace("/","").replace("\"","").replace("|","_")
 	filename_video = filename_root+".WebM"
 	filename_audio = filename_root+".mp3"
 	options    = { "format": "bestaudio/best", "keepvideo": False, "outtmpl": filename_video, "postprocessors": [{
@@ -127,6 +127,9 @@ def Pull(s, finder):
 		f.tag.album  = s[1]["Album"]
 		f.tag.artist = s[1]["Artist"]
 		f.tag.genre  = s[1]["Genre"]
+		# according to eyed3 documentation, applications use either of these fields to determine the "year" of the mp3
+		f.tag.recording_date = s[1]["Year"]
+		f.tag.release_date = s[1]["Year"]
 		f.tag.save()
 		print("Injected ID3 data for "+filename_audio)
 
