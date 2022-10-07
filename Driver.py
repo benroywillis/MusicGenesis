@@ -7,6 +7,7 @@ import eyed3
 from get_cover_art import CoverFinder
 import argparse
 from datetime import datetime
+import os
 
 def Parse_Args():
 	arg_parser = argparse.ArgumentParser()
@@ -16,7 +17,9 @@ def Parse_Args():
 	arg_parser.add_argument("--today", action="store_true", help="Only process entries in the input csv that were added today. This argument trumps other date arguments.")
 	arg_parser.add_argument("--start-date", default=None, help="Date at which to start the reading of the input csv. Input must be in mmddyyyy format. The input will be interpreted as the date to start the search and includes the date input. Defaults to the first date in the input csv.")
 	arg_parser.add_argument("--end-date", default=None, help="Date at which to end the reading of the input csv. Input must be in mmddyyyy format. The input will be interpreted as the date to search the search and includes the date input. Defaults to the last date in the csv.")
+	arg_parser.add_argument("--output", default="", help="Output location to store the results. Defaults to the current date.")
 	args = arg_parser.parse_args()
+	# arg post processing
 	args.offset = int(args.offset)
 	if args.start_date:
 		args.start_date = datetime.strptime(args.start_date, '%m%d%Y').date()
@@ -26,6 +29,10 @@ def Parse_Args():
 		args.end_date = datetime.strptime(args.end_date, '%m%d%Y').date()
 	else:
 		args.end_date = datetime.max.date()
+	if not len(args.output):
+		args.output = str(datetime.today().date())
+	if not os.path.isdir(args.output):
+		os.mkdir(args.output)
 	return args
 
 def readInput(args):
@@ -85,13 +92,13 @@ def readInput(args):
 												  }
 	return songInfo
 
-def Pull(s, finder):
+def Pull(s, finder, args):
 	"""
 	@brief 	Pulls down the video encoded within the tuple s
 	@param[in]	s	Key-value pair: "Link": { "Title": ... , "Album": ..., "Artist": ..., "Genre": ... }
 	"""
 	video_info     = youtube_dl.YoutubeDL().extract_info( url=s[0], download=False)	
-	filename_root = str(video_info["title"]).replace(" ","").replace("(","_").replace(")","").replace("'","").replace("&","and").replace(":","").replace("[","_").replace("]","").replace("/","").replace("\"","").replace("|","_")
+	filename_root = args.output+"/"+str(video_info["title"]).replace(" ","").replace("(","_").replace(")","").replace("'","").replace("&","and").replace(":","").replace("[","_").replace("]","").replace("/","").replace("\"","").replace("|","_")
 	filename_video = filename_root+".WebM"
 	filename_audio = filename_root+".mp3"
 	options    = { "format": "bestaudio/best", "keepvideo": False, "outtmpl": filename_video, "postprocessors": [{
@@ -151,10 +158,10 @@ def DownLoadPlayList(songInfo):
 	for s in songInfo.items():
 		if args.today:
 			if s[1]["Date"] == datetime.today().date():
-				e = Pull(s, finder)
+				e = Pull(s, finder, args)
 				errors[e].append( s )
 		elif (args.start_date <= s[1]["Date"]) and (s[1]["Date"] <= args.end_date):
-			e = Pull(s, finder)
+			e = Pull(s, finder, args)
 			errors[e].append( s )
 
 	print("Successful downloads:")
