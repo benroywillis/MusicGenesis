@@ -7,5 +7,6 @@
 *.log
 // no temporaries
 tmp.*
+*.swp
 __pycache__
 *.WebM.part
