@@ -10,3 +10,4 @@ tmp.*
 *.swp
 __pycache__
 *.WebM.part
+youtube-sigfuncs
