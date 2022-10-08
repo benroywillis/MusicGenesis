@@ -18,6 +18,8 @@ def Parse_Args():
 	arg_parser.add_argument("--start-date", default=None, help="Date at which to start the reading of the input csv. Input must be in mmddyyyy format. The input will be interpreted as the date to start the search and includes the date input. Defaults to the first date in the input csv.")
 	arg_parser.add_argument("--end-date", default=None, help="Date at which to end the reading of the input csv. Input must be in mmddyyyy format. The input will be interpreted as the date to search the search and includes the date input. Defaults to the last date in the csv.")
 	arg_parser.add_argument("--output", default="", help="Output location to store the results. Defaults to the current date.")
+	arg_parser.add_argument("--cookies", default="", help="Point to a cookie file for bypassing youtube video age restrictions. This file must be an absolute path.")
+	arg_parser.add_argument("--cache", default="./", help="Folder for youtube_dl to dump its cache data. Defaults to the current directory.")
 	args = arg_parser.parse_args()
 	# arg post processing
 	args.offset = int(args.offset)
@@ -98,15 +100,16 @@ def Pull(s, finder, args):
 	@param[in]	s	Key-value pair: "Link": { "Title": ... , "Album": ..., "Artist": ..., "Genre": ... }
 	"""
 	video_info     = youtube_dl.YoutubeDL().extract_info( url=s[0], download=False)	
-	filename_root = args.output+"/"+str(video_info["title"]).replace(" ","").replace("(","_").replace(")","").replace("'","").replace("&","and").replace(":","").replace("[","_").replace("]","").replace("/","").replace("\"","").replace("|","_")
+	filename_root = args.output+"/"+str(video_info["title"]).replace(" ","").replace("(","_").replace(")","").replace("'","").replace("&","and").replace(":","").replace("[","_").replace("]","").replace("/","").replace("\"","").replace("|","_").replace("%","PERCENT")
 	filename_video = filename_root+".WebM"
 	filename_audio = filename_root+".mp3"
-	options    = { "format": "bestaudio/best", "keepvideo": False, "outtmpl": filename_video, "postprocessors": [{
-																							"key": "FFmpegExtractAudio",\
-																							 "preferredcodec": "mp3",\
-																							 "preferredquality": "192",\
-																							 "nopostoverwrites": False
-																							  }] }
+	options = { "format": "bestaudio/best", "keepvideo": False, "outtmpl": filename_video, "cookiefile": args.cookies, 
+				"verbose": True, "cachedir": args.cache, "rm_cachedir": True, "postprocessors": [{ "key": "FFmpegExtractAudio",\
+										  											               "preferredcodec": "mp3",\
+										  											               "preferredquality": "192",\
+										  											               "nopostoverwrites": False }],\
+				"ignoreerrors": True
+			  }
 	# check to see if we already have this file, if we do then skip the download
 	try:
 		with open(filename_audio, "r") as f:
