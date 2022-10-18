@@ -9,6 +9,8 @@ import argparse
 from datetime import datetime
 import os
 
+targetHeaders = { "Title", "Album", "Artist", "Genre", "Year", "Link", "Date Added" }
+
 def Parse_Args():
 	arg_parser = argparse.ArgumentParser()
 	arg_parser.add_argument("-i", "--input", default="songs.csv", help="Input csv file with a column called \"Links\"")
@@ -53,7 +55,7 @@ def readInput(args):
 	date_col = 0
 	i_c = 0
 	for header in inputCSV.split("\n")[0].split(","):
-		if (header == "Title") or (header == "Album") or (header == "Artist") or (header == "Genre") or (header == "Year") or (header == "Link") or (header == "Date Added"):
+		if header in targetHeaders:
 			targetColumns[header] = i_c
 		i_c += 1
 
@@ -73,6 +75,10 @@ def readInput(args):
 					quotedEntry = ""
 				else:
 					raise Exception("Could not handle position of quote in csv entry!")
+			elif (len(entries[i]) == 0) and (i == targetColumns["Link"]):
+				# skip, there is no video available for this entry
+				print("Found empty link in line "+str(lineList))
+				continue
 			else:
 				if len(quotedEntry):
 					quotedEntry += entries[i]
@@ -83,7 +89,9 @@ def readInput(args):
 	# maps a link to song info (Title, Album, Artist, Genre)
 	songInfo = {}
 	for line in csvArray:
-		if len(line) < 5:
+		print(line)
+		if len(line) != len(targetHeaders) + 3:
+			# this skips entries with incomplete data
 			continue
 		songInfo[ line[targetColumns["Link"]] ] = { "Title"  : line[targetColumns["Title"]], \
 													"Album"  : line[targetColumns["Album"]], \
@@ -103,6 +111,7 @@ def Pull(s, finder, args):
 	filename_root = args.output+"/"+str(video_info["title"]).replace(" ","").replace("(","_").replace(")","").replace("'","").replace("&","and").replace(":","").replace("[","_").replace("]","").replace("/","").replace("\"","").replace("|","_").replace("%","PERCENT")
 	filename_video = filename_root+".WebM"
 	filename_audio = filename_root+".mp3"
+	# "rm_cachedir": True seems to break the script by getting rid of evidence of the download
 	options = { "format": "bestaudio/best", "keepvideo": False, "outtmpl": filename_video, "cookiefile": args.cookies, 
 				"verbose": True, "cachedir": args.cache, "rm_cachedir": True, "postprocessors": [{ "key": "FFmpegExtractAudio",\
 										  											               "preferredcodec": "mp3",\
@@ -111,18 +120,20 @@ def Pull(s, finder, args):
 				"ignoreerrors": True
 			  }
 	# check to see if we already have this file, if we do then skip the download
+	download = False
 	try:
 		with open(filename_audio, "r") as f:
 			print("Already found "+filename_audio+". Skipping download...")
 	except FileNotFoundError:
+		print("Could not find "+filename_audio+". Downloading...")
+		download = True
+	if download:
 		try:
 			with youtube_dl.YoutubeDL(options) as ydl:
 				ydl.download( [video_info["webpage_url"]] )
 				print("Downloaded "+filename_video)
 		except Exception as e:
 			print("Error downloading "+filename_video+": "+str(e))
-			print()
-			return "Download"
 
 	# mp3 information injection: Title, Album, Artist, Genre, Cover Art
 	f = eyed3.load(filename_audio)
