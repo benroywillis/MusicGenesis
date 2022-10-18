@@ -89,7 +89,6 @@ def readInput(args):
 	# maps a link to song info (Title, Album, Artist, Genre)
 	songInfo = {}
 	for line in csvArray:
-		print(line)
 		if len(line) != len(targetHeaders) + 3:
 			# this skips entries with incomplete data
 			continue
