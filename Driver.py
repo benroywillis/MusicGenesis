@@ -26,11 +26,11 @@ def Parse_Args():
 	# arg post processing
 	args.offset = int(args.offset)
 	if args.start_date:
-		args.start_date = datetime.strptime(args.start_date, '%m%d%Y').date()
+		args.start_date = datetime.strptime(args.start_date, '%Y-%m-%d').date()
 	else:
 		args.start_date = datetime.min.date()
 	if args.end_date:
-		args.end_date = datetime.strptime(args.end_date, '%m%d%Y').date()
+		args.end_date = datetime.strptime(args.end_date, '%Y-%m-%d').date()
 	else:
 		args.end_date = datetime.max.date()
 	if not len(args.output):
@@ -97,7 +97,7 @@ def readInput(args):
 													"Artist" : line[targetColumns["Artist"]],\
 													"Genre"  : line[targetColumns["Genre"]], \
 													"Year"   : line[targetColumns["Year"]], \
-												    "Date"   : datetime.strptime(line[targetColumns["Date Added"]], '%m-%d-%Y').date()
+												    "Date"   : datetime.strptime(line[targetColumns["Date Added"]], '%Y-%m-%d').date()
 												  }
 	return songInfo
 
