@@ -11,3 +11,4 @@ tmp.*
 __pycache__
 *.WebM.part
 youtube-sigfuncs
+youtube-nsig
