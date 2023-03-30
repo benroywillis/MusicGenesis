@@ -101,7 +101,7 @@ def readInput(args):
 												  }
 	return songInfo
 
-def Pull(s, finder, args):
+def Pull(s, album_art_finder, args):
 	"""
 	@brief 	Pulls down the video encoded within the tuple s
 	@param[in]	s	Key-value pair: "Link": { "Title": ... , "Album": ..., "Artist": ..., "Genre": ... }
@@ -154,7 +154,7 @@ def Pull(s, finder, args):
 		print("Injected ID3 data for "+filename_audio)
 
 		# album art finder
-		finder.scan_file(filename_audio)
+		album_art_finder.scan_file(filename_audio)
 	print()
 	return "Success"
 
@@ -163,7 +163,7 @@ def DownLoadPlayList(songInfo):
 	Downloads a series of songs from an input playlist (see readInput()) and returns errors
 	"""
 	# album art finder 
-	finder = CoverFinder( { "verbose": True , "force": args.force_album } )
+	album_art_finder = CoverFinder( { "verbose": True , "force": args.force_album } )
 
 	# keeps track of outcomes
 	errors = { "Success": [], "Download": [], "Format": [] }
@@ -171,10 +171,10 @@ def DownLoadPlayList(songInfo):
 	for s in songInfo.items():
 		if args.today:
 			if s[1]["Date"] == datetime.today().date():
-				e = Pull(s, finder, args)
+				e = Pull(s, album_art_finder, args)
 				errors[e].append( s )
 		elif (args.start_date <= s[1]["Date"]) and (s[1]["Date"] <= args.end_date):
-			e = Pull(s, finder, args)
+			e = Pull(s, album_art_finder, args)
 			errors[e].append( s )
 
 	print("Successful downloads:")
